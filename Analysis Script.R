@@ -1,5 +1,15 @@
-#DO
-#LASSO TIME - SEE https://www.r-bloggers.com/ridge-regression-and-the-lasso/
+#Analysis Script for Exploratory Data Analysis on American Gut Microbiome Set
+#Assumed:
+#Data has been cleaned, read in as data frames where:
+#   nnormdata is complete level 6 taxonomic american gut data set after Qiime 2 proccessing
+#   ASD variable has been included in the level 6 taxonomic data as a binary response (1 or 0) variable
+#   'ASD' matches the name on nnormdata set for the ASD variable.
+#   All tests that require training and testing sets have code included to create training and testing data. 
+#       No further data cleaning should be required for V1-V8 sets, omiting V4
+#   V4 data set done on metadata data set for american gut. All categorical variables given a numerical
+#       corresponding number as code for value.
+
+# Calculating Lambda For Lasso Regression
 x <- model.matrix(ASD~ ., nnormdata)
 y <- nnormdata$ASD
 lambda <- 10^seq(10, -2, length = 100)
@@ -13,7 +23,10 @@ test = (-train)
 ytest = y[test]
 #OLS
 
-#Linear and Logistic Modeling!!
+#REAL way to plot lasso given data:
+plot(lasso.mod, "norm", label = TRUE)
+
+#Linear and Logistic Modeling
 nndatalm <- lm(ASD~., data = nnormdata)
 nndataglm <- glm(ASD~., data = nnormdata)
 summary(nndataglm)
@@ -30,7 +43,7 @@ pR2(nndataglm)
 #Tests for deviance within the logistic model
 anova(nndataglm, test = "Chisq")
 
-#False Positive on glm
+#False Positive on glm, logistic regression model
 library(ROCR)
 p <- predict(nndataglm, nnormdata, type="response")
 pr <- prediction(p, nnormdata$ASD)
@@ -43,12 +56,7 @@ auc
 
 plot(ridge.mod$beta, text(x,y))
 
-
-
-anovanndata <- anova(nndataglm, test = "Chisq")
-coef(nnormdata) 
-
-#ridge
+#Ridge Regression
 ridge.mod <- glmnet(x, y, alpha = 0, lambda = lambda)
 predict(ridge.mod, s = 0, exact = T, type = 'coefficients')[1:6,]
 
@@ -59,13 +67,13 @@ cv.out <- cv.glmnet(x[train,], y[train], alpha = 0)
 
 bestlam <- cv.out$lambda.min
 
-#make predictions
+#Training phase of Rdige Regression
 ridge.pred <- predict(ridge.mod, s = bestlam, newx = x[test,])
 s.pred <- predict(nndatalm, newdata = nnormdata[test,])
 #check MSE
 mean((s.pred-ytest)^2)
 
-#a look at the coefficients
+#Creating coefficent values for specifc ASD values
 out = glmnet(x[train,],y[train],alpha = 0)
 predict(ridge.mod, type = "coefficients", s = bestlam)
 
@@ -75,18 +83,10 @@ mean((lasso.pred-ytest)^2)
 #output of about 0.02 which means their is a high likelyhood that they are notable predictors!
 lasso.coef  <- predict(lasso.mod, type = 'coefficients', s = bestlam) #need to open/download
 
-#randomForest
+#Conducting Random Forest
 library(randomForest)
 nnormdata.rf<- randomForest(ASD~ ., nnormdata)
 
-#Principal Component Analysis:
-pcannormdata <- prcomp(nnormdata)
-biplot(pcannormdata)
-
-#REAL way to plot lasso given data:
-plot(lasso.mod, "norm", label = TRUE)
-
-#matplot(lasso.coef)
 
 #Clustering
 library(cluster)
@@ -97,21 +97,12 @@ mnnormdata <- Mclust(distnnormdata)
 library(e1071)
 bnnormdata <- bclust(nnormdata)
 
-#e1071: Let the vectors support your model
-
-#kernLab: kernel trick packaged well
-
 #FOR CNTREE
 library(e1071)
 ctreennormdata <- ctree(ASD~ .,nnormdata)
 
-#Getting started with Naive Bayes
-#MAYBE?
-
-#STUFF TO LOOK AT:
-
-pcannormdata
-biplot(pcannormdata)
+# Final Plots for Peliminary analysis on graphical data
+# ommiting random forest which is done further below
 plot(nndatalm)
 plot(nndataglm)
 plot(lasso.mod, "norm", label = TRUE)
@@ -119,8 +110,6 @@ plot(ridge.mod, "norm", label = TRUE)
 plot(mnnormdata)
 plot(bnnormdata)
 plot(ctreennormdata)
-anovanndata
-#writecsv for nnormdata.rf
 
 #correlation script
 library(ltm)
@@ -151,14 +140,13 @@ summary(results)
 
 dotplot(results)
 
-library(pvclust)
-#can be used to create pvalues hieracl clustering
 
-
+#using anova to plot p values for logistic and linear regression
 write.csv(anova(nndatalm), file = "vlinearmodelpvalues")
 write.csv(anova(nndataglm), file = "vlogisticmodelpvalues")
 write.csv(anova(nndatagam), file = "vgammodelpvalues")
 
+#plotting cooks distance, hat values and residual plots for linear regression and logistic regression
 std_residlm  <- rstandard(nndatalm)
 cooks_dlm <- cooks.distance(nndatalm)
 hat_valueslm <- hatvalues(nndatalm)
@@ -175,23 +163,6 @@ hat_valuesgam <- hatvalues(nndatagam)
 plot(hat_valuesgam, std_residlm, cex = 10*sqrt(cooks_dgam))
 
 
-
-#library(randomForest)
-#varImpPlot(nnormdata.rf)
-
-library(relaimpo)
-relimplm <- calc.relimp(nndatalm)
-#also can use : calc.relimp(nndatalm, type=c("lmg","last"...), rela = TRUE)
-
-#also a bootsrap method available
-
-#also please use for glm (general linear model)
-
-#for asd only and nonasd only
-library(Vegan)
-diversity <- divesity(nnormdata, type = simpson)
-
-#randyplot
 library(party)
 cf <- cforest(ASD ~ ., data=nnormdata)
 
@@ -210,7 +181,6 @@ cov(nnormdata, use="complete.obs")
 library(Hmisc)
 rcorr(x, type="pearson") # type can be pearson or spearman
 
-#mtcars is a data frame 
 rcorr(as.matrix(nnormdata))
 
 options(max.print = 1000000)
@@ -219,9 +189,9 @@ capture.output(summarynndata, file = "myfile.txt")
 
 chisanova <- anova(nndataglm, test="Chisq")
 
-
 write.csv(importance(nnormdata.rf), file = "vrfimportance")
 
+#Code Citations
 #http://topepo.github.io/caret/train-models-by-tag.html#binary-predictors-only
 #http://thestatsgeek.com/2014/02/08/r-squared-in-logistic-regression/
 #https://machinelearningmastery.com/machine-learning-in-r-step-by-step/
