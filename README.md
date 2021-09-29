@@ -1,11 +1,9 @@
-# Repository for Supplemental Information on EDA Microbiome-Autism Analysis
+# Supplemental Information on EDA Microbiome-Autism Analysis
 
 For R Script used, see Analysis Script.R
 
-For Supplemental Data, see folder
+For Supplemental Data, see corresponding folder containing numerical results from statiscal tests and plots yielded from analysis script.
 
-For Meta Data, see corresponding folder. Note: Due to storage capacity, first 100 of 23,000 samples provided
+For Metadata on the data set used, see corresponding folder. Note: Due to storage capacity, first 100 of 23,000 samples provided
 
-Complete Proccessed Data used avaialable upon request.
-
-Feel Free to contact via GitHub if any questions arise.
+Processed Data containing numerical abundances of microbiota for each sample available upon request.
